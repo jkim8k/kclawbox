@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "memory-qdrant": {
+      "version": "1.0.10"
+    },
+    "elite-longterm-memory-local": {
+      "version": "1.1.0"
+    },
+    "memory-tiering": {
+      "version": "1.0.0"
+    },
+    "agent-browser-clawdbot": {
+      "version": "0.1.0"
+    }
+  }
+}

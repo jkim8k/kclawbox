@@ -1,0 +1,12 @@
+.env
+.env.*
+.codex
+data/
+workspaces/
+*-deploy/
+*.log
+*.tmp
+*.swp
+*~
+.DS_Store
+__pycache__/

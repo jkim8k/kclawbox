@@ -1,0 +1,14 @@
+data/
+workspaces/
+*.log
+.env
+.env.*
+*.tmp
+*.swp
+*~
+__pycache__/
+.DS_Store
+*.tar.zst
+vendor/ollama-linux-amd64.tar
+kclawbox-deploy/
+*-deploy/

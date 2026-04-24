@@ -1,0 +1,30 @@
+services:
+  kclawbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${OPENCLAW_IMAGE_NAME:-kclawbox:latest}
+    container_name: ${OPENCLAW_CONTAINER_NAME:-kclawbox}
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_HOST_PORT:-11434}:11434"
+      - "${OPENCLAW_HOST_PORT:-18789}:18789"
+    gpus: all
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.6:latest}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-openclaw-local-token}
+      KCLAWBOX_AGENT_NAME: ${KCLAWBOX_AGENT_NAME:-}
+      KCLAWBOX_WORKSPACE_NAME: ${KCLAWBOX_WORKSPACE_NAME:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ALLOW_FROM: ${TELEGRAM_ALLOW_FROM:-}
+      OLLAMA_HOST: 127.0.0.1:11434
+      OLLAMA_SERVER_HOST: 0.0.0.0:11434
+      OLLAMA_MODELS: /data/ollama/models
+      HOME: /data/home
+      OPENCLAW_HOME: /data/openclaw
+      OPENCLAW_CONFIG_DIR: /data/openclaw/config
+      OPENCLAW_WORKSPACE_DIR: /data/openclaw/workspace
+    volumes:
+      - ${HOST_OLLAMA_DIR:-./workspaces/default/ollama}:/data/ollama
+      - ${HOST_OPENCLAW_DIR:-./workspaces/default/openclaw}:/data/openclaw
+      - ${HOST_HOME_DIR:-./workspaces/default/home}:/data/home
