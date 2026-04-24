@@ -68,6 +68,4 @@ RUN printf '%s\n' \
 
 EXPOSE 11434 18789
 
-VOLUME ["/data/ollama/models", "/data/openclaw", "/data/home"]
-
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
