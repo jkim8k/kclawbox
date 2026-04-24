@@ -6,7 +6,6 @@ One container that runs:
 - local model serving on GPU
 - `ollama launch openclaw`
 - optional Telegram channel auto-configuration during first boot
-- bundled `srt-reservation` skill installed into Codex skills on first boot
 - bundled ClawHub/OpenClaw workspace skills for memory and `agent-browser`
 
 ## Fast Onboarding
@@ -68,8 +67,7 @@ If you want service-style control after first setup:
 
 If a Telegram bot token and allowlist are provided, the container configures the Telegram channel automatically on boot.
 
-The deployment image also ships a default `srt-reservation` skill and installs it into `/data/home/.codex/skills` on first boot if the skill is not already present.
-It also seeds OpenClaw workspace skills into `/data/openclaw/.openclaw/workspace/skills`, including `memory-qdrant`, `elite-longterm-memory-local`, `memory-tiering`, and `agent-browser-clawdbot`.
+The deployment image seeds OpenClaw workspace skills into `/data/openclaw/.openclaw/workspace/skills`, including `memory-qdrant`, `elite-longterm-memory-local`, `memory-tiering`, and `agent-browser-clawdbot`.
 On first boot, `kclawbox` installs npm dependencies for the memory skills and installs the `agent-browser` CLI globally.
 The Docker build downloads the Ollama runtime during image build. The model itself is still downloaded on first boot via `ollama pull`.
 
