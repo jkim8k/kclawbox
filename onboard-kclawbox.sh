@@ -220,7 +220,7 @@ normalize_workspace_name() {
 prompt_for_workspace_name() {
   local input=""
   while true; do
-    printf 'agent english name (one word): '
+    printf 'agent english name (one word): ' >&2
     IFS= read -r input || exit 1
     input="$(normalize_workspace_name "${input}")"
     if is_valid_workspace_name "${input}"; then
