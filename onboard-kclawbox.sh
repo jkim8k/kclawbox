@@ -3,7 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env"
-WORKSPACES_DIR="${SCRIPT_DIR}/workspaces"
 MODEL_DEFAULT="qwen3.6:latest"
 
 usage() {
@@ -160,6 +159,11 @@ docker_container_exists() {
   docker inspect -f '{{.Name}}' "${name}" >/dev/null 2>&1
 }
 
+docker_volume_exists() {
+  local name="$1"
+  docker volume inspect "${name}" >/dev/null 2>&1
+}
+
 port_is_in_use() {
   local port="$1"
   if command -v ss >/dev/null 2>&1; then
@@ -227,6 +231,16 @@ prompt_for_workspace_name() {
   done
 }
 
+reset_workspace_volumes() {
+  local container_name="$1"
+  shift
+  local volumes=("$@")
+  docker rm -f "${container_name}" >/dev/null 2>&1 || true
+  for volume_name in "${volumes[@]}"; do
+    docker volume rm -f "${volume_name}" >/dev/null 2>&1 || true
+  done
+}
+
 workspace_name=""
 model=""
 gateway_token=""
@@ -236,9 +250,9 @@ container_name=""
 image_name=""
 ollama_host_port=""
 openclaw_host_port=""
-host_ollama_dir=""
-host_openclaw_dir=""
-host_home_dir=""
+ollama_volume_name=""
+openclaw_volume_name=""
+home_volume_name=""
 run_up="yes"
 auto_chat="yes"
 force="no"
@@ -317,9 +331,9 @@ if [[ -f "${ENV_FILE}" && "${force}" != "yes" ]]; then
   [[ -n "${image_name}" ]] || image_name="$(read_env_value OPENCLAW_IMAGE_NAME)"
   [[ -n "${ollama_host_port}" ]] || ollama_host_port="$(read_env_value OLLAMA_HOST_PORT)"
   [[ -n "${openclaw_host_port}" ]] || openclaw_host_port="$(read_env_value OPENCLAW_HOST_PORT)"
-  [[ -n "${host_ollama_dir}" ]] || host_ollama_dir="$(read_env_value HOST_OLLAMA_DIR)"
-  [[ -n "${host_openclaw_dir}" ]] || host_openclaw_dir="$(read_env_value HOST_OPENCLAW_DIR)"
-  [[ -n "${host_home_dir}" ]] || host_home_dir="$(read_env_value HOST_HOME_DIR)"
+  [[ -n "${ollama_volume_name}" ]] || ollama_volume_name="$(read_env_value OLLAMA_VOLUME_NAME)"
+  [[ -n "${openclaw_volume_name}" ]] || openclaw_volume_name="$(read_env_value OPENCLAW_VOLUME_NAME)"
+  [[ -n "${home_volume_name}" ]] || home_volume_name="$(read_env_value HOME_VOLUME_NAME)"
   echo "loading existing ${ENV_FILE}; explicit flags override saved values"
 fi
 
@@ -364,25 +378,23 @@ if [[ -n "${telegram_bot_token}" && -z "${telegram_allow_from}" ]]; then
   die "--telegram-bot-token requires --telegram-allow-from for a safe default setup"
 fi
 
-workspace_rel_dir="./workspaces/${workspace_name}"
-workspace_dir="${WORKSPACES_DIR}/${workspace_name}"
-if [[ -z "${host_ollama_dir}" ]]; then
-  host_ollama_dir="${workspace_rel_dir}/ollama"
+if [[ -z "${ollama_volume_name}" ]]; then
+  ollama_volume_name="kclawbox-${workspace_name}-ollama"
 fi
-if [[ -z "${host_openclaw_dir}" ]]; then
-  host_openclaw_dir="${workspace_rel_dir}/openclaw"
+if [[ -z "${openclaw_volume_name}" ]]; then
+  openclaw_volume_name="kclawbox-${workspace_name}-openclaw"
 fi
-if [[ -z "${host_home_dir}" ]]; then
-  host_home_dir="${workspace_rel_dir}/home"
+if [[ -z "${home_volume_name}" ]]; then
+  home_volume_name="kclawbox-${workspace_name}-home"
 fi
 
-mkdir -p \
-  "${WORKSPACES_DIR}" \
-  "${workspace_dir}/ollama" \
-  "${workspace_dir}/openclaw" \
-  "${workspace_dir}/home"
-
-printf '%s\n' "${workspace_name}" > "${workspace_dir}/AGENT_NAME.txt"
+if docker_volume_exists "${ollama_volume_name}" || docker_volume_exists "${openclaw_volume_name}" || docker_volume_exists "${home_volume_name}"; then
+  if [[ "${force}" == "yes" ]]; then
+    reset_workspace_volumes "${container_name}" "${ollama_volume_name}" "${openclaw_volume_name}" "${home_volume_name}"
+  else
+    die "agent volumes already exist for ${workspace_name} (use a new name or rerun with --force)"
+  fi
+fi
 
 cat >"${ENV_FILE}" <<EOF
 KCLAWBOX_WORKSPACE_NAME=${workspace_name}
@@ -393,9 +405,9 @@ OPENCLAW_CONTAINER_NAME=${container_name}
 OPENCLAW_IMAGE_NAME=${image_name}
 OLLAMA_HOST_PORT=${ollama_host_port}
 OPENCLAW_HOST_PORT=${openclaw_host_port}
-HOST_OLLAMA_DIR=${host_ollama_dir}
-HOST_OPENCLAW_DIR=${host_openclaw_dir}
-HOST_HOME_DIR=${host_home_dir}
+OLLAMA_VOLUME_NAME=${ollama_volume_name}
+OPENCLAW_VOLUME_NAME=${openclaw_volume_name}
+HOME_VOLUME_NAME=${home_volume_name}
 TELEGRAM_BOT_TOKEN=${telegram_bot_token}
 TELEGRAM_ALLOW_FROM=${telegram_allow_from}
 EOF
@@ -408,9 +420,9 @@ echo "OPENCLAW_CONTAINER_NAME=${container_name}"
 echo "OPENCLAW_IMAGE_NAME=${image_name}"
 echo "OLLAMA_HOST_PORT=${ollama_host_port}"
 echo "OPENCLAW_HOST_PORT=${openclaw_host_port}"
-echo "HOST_OLLAMA_DIR=${host_ollama_dir}"
-echo "HOST_OPENCLAW_DIR=${host_openclaw_dir}"
-echo "HOST_HOME_DIR=${host_home_dir}"
+echo "OLLAMA_VOLUME_NAME=${ollama_volume_name}"
+echo "OPENCLAW_VOLUME_NAME=${openclaw_volume_name}"
+echo "HOME_VOLUME_NAME=${home_volume_name}"
 if [[ -n "${telegram_bot_token}" ]]; then
   echo "TELEGRAM_BOT_TOKEN=configured"
   echo "TELEGRAM_ALLOW_FROM=${telegram_allow_from}"

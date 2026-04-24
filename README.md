@@ -11,7 +11,7 @@ One container that runs:
 
 ## Fast Onboarding
 
-Use [onboard-kclawbox.sh](./onboard-kclawbox.sh) to ask for an English one-word agent name, create an isolated workspace under `./workspaces/{name}`, wait until the box is actually ready, and jump straight into chat.
+Use [onboard-kclawbox.sh](./onboard-kclawbox.sh) to ask for an English one-word agent name, create isolated Docker volumes for that agent, wait until the box is actually ready, and jump straight into chat.
 
 One-line install:
 
@@ -58,8 +58,8 @@ If you want service-style control after first setup:
 - writes `.env`
 - asks for the agent's English one-word name
 - generates a random gateway token if one is not provided
-- prepares `./workspaces/{name}/` directories
-- isolates Ollama, OpenClaw, and Codex state per workspace
+- creates isolated Docker volumes for Ollama, OpenClaw, and Codex state
+- prevents state sharing across agent names
 - auto-picks a free container name if `kclawbox-{name}` is already taken
 - auto-picks free host ports if the defaults are already occupied
 - starts `docker compose up --build -d` by default
@@ -99,7 +99,7 @@ The default output is `../kclawbox-deploy`.
 
 - The first start will pull the selected model inside the container.
 - The first start also runs `ollama launch openclaw --model ... --yes`.
-- Each agent gets its own isolated data under `./workspaces/{name}/`.
+- Each agent gets its own isolated Docker volumes.
 - Default model is `qwen3.6:latest`.
 - If Telegram is configured, `TELEGRAM_ALLOW_FROM` should contain one or more comma-separated Telegram user ids.
 - Internet access is required at image build time to download the Ollama runtime.
