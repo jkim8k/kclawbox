@@ -159,9 +159,9 @@ docker_container_exists() {
   docker inspect -f '{{.Name}}' "${name}" >/dev/null 2>&1
 }
 
-docker_volume_exists() {
-  local name="$1"
-  docker volume inspect "${name}" >/dev/null 2>&1
+workspace_dir_has_state() {
+  local dir="$1"
+  [[ -d "${dir}" ]] && [[ -n "$(ls -A "${dir}" 2>/dev/null)" ]]
 }
 
 port_is_in_use() {
@@ -231,14 +231,17 @@ prompt_for_workspace_name() {
   done
 }
 
-reset_workspace_volumes() {
+reset_workspace_dir() {
   local container_name="$1"
-  shift
-  local volumes=("$@")
+  local dir="$2"
   docker rm -f "${container_name}" >/dev/null 2>&1 || true
-  for volume_name in "${volumes[@]}"; do
-    docker volume rm -f "${volume_name}" >/dev/null 2>&1 || true
-  done
+  if [[ -d "${dir}" ]]; then
+    rm -rf "${dir}" 2>/dev/null || true
+    if [[ -d "${dir}" ]]; then
+      docker run --rm -v "${dir}:/kclawbox-ws" alpine:3 sh -c 'rm -rf /kclawbox-ws/* /kclawbox-ws/.[!.]* /kclawbox-ws/..?*' >/dev/null 2>&1 || true
+      rmdir "${dir}" 2>/dev/null || true
+    fi
+  fi
 }
 
 workspace_name=""
@@ -250,9 +253,7 @@ container_name=""
 image_name=""
 ollama_host_port=""
 openclaw_host_port=""
-ollama_volume_name=""
-openclaw_volume_name=""
-home_volume_name=""
+host_workspace_dir=""
 run_up="yes"
 auto_chat="yes"
 force="no"
@@ -331,9 +332,7 @@ if [[ -f "${ENV_FILE}" && "${force}" != "yes" ]]; then
   [[ -n "${image_name}" ]] || image_name="$(read_env_value OPENCLAW_IMAGE_NAME)"
   [[ -n "${ollama_host_port}" ]] || ollama_host_port="$(read_env_value OLLAMA_HOST_PORT)"
   [[ -n "${openclaw_host_port}" ]] || openclaw_host_port="$(read_env_value OPENCLAW_HOST_PORT)"
-  [[ -n "${ollama_volume_name}" ]] || ollama_volume_name="$(read_env_value OLLAMA_VOLUME_NAME)"
-  [[ -n "${openclaw_volume_name}" ]] || openclaw_volume_name="$(read_env_value OPENCLAW_VOLUME_NAME)"
-  [[ -n "${home_volume_name}" ]] || home_volume_name="$(read_env_value HOME_VOLUME_NAME)"
+  [[ -n "${host_workspace_dir}" ]] || host_workspace_dir="$(read_env_value HOST_WORKSPACE_DIR)"
   echo "loading existing ${ENV_FILE}; explicit flags override saved values"
 fi
 
@@ -378,23 +377,19 @@ if [[ -n "${telegram_bot_token}" && -z "${telegram_allow_from}" ]]; then
   die "--telegram-bot-token requires --telegram-allow-from for a safe default setup"
 fi
 
-if [[ -z "${ollama_volume_name}" ]]; then
-  ollama_volume_name="kclawbox-${workspace_name}-ollama"
-fi
-if [[ -z "${openclaw_volume_name}" ]]; then
-  openclaw_volume_name="kclawbox-${workspace_name}-openclaw"
-fi
-if [[ -z "${home_volume_name}" ]]; then
-  home_volume_name="kclawbox-${workspace_name}-home"
+if [[ -z "${host_workspace_dir}" ]]; then
+  host_workspace_dir="${SCRIPT_DIR}/workspaces/${workspace_name}"
 fi
 
-if docker_volume_exists "${ollama_volume_name}" || docker_volume_exists "${openclaw_volume_name}" || docker_volume_exists "${home_volume_name}"; then
+if workspace_dir_has_state "${host_workspace_dir}"; then
   if [[ "${force}" == "yes" ]]; then
-    reset_workspace_volumes "${container_name}" "${ollama_volume_name}" "${openclaw_volume_name}" "${home_volume_name}"
+    reset_workspace_dir "${container_name}" "${host_workspace_dir}"
   else
-    die "agent volumes already exist for ${workspace_name} (use a new name or rerun with --force)"
+    die "workspace directory already has state: ${host_workspace_dir} (use a new name or rerun with --force)"
   fi
 fi
+
+mkdir -p "${host_workspace_dir}/ollama" "${host_workspace_dir}/openclaw" "${host_workspace_dir}/home"
 
 cat >"${ENV_FILE}" <<EOF
 KCLAWBOX_WORKSPACE_NAME=${workspace_name}
@@ -405,9 +400,7 @@ OPENCLAW_CONTAINER_NAME=${container_name}
 OPENCLAW_IMAGE_NAME=${image_name}
 OLLAMA_HOST_PORT=${ollama_host_port}
 OPENCLAW_HOST_PORT=${openclaw_host_port}
-OLLAMA_VOLUME_NAME=${ollama_volume_name}
-OPENCLAW_VOLUME_NAME=${openclaw_volume_name}
-HOME_VOLUME_NAME=${home_volume_name}
+HOST_WORKSPACE_DIR=${host_workspace_dir}
 TELEGRAM_BOT_TOKEN=${telegram_bot_token}
 TELEGRAM_ALLOW_FROM=${telegram_allow_from}
 EOF
@@ -420,9 +413,7 @@ echo "OPENCLAW_CONTAINER_NAME=${container_name}"
 echo "OPENCLAW_IMAGE_NAME=${image_name}"
 echo "OLLAMA_HOST_PORT=${ollama_host_port}"
 echo "OPENCLAW_HOST_PORT=${openclaw_host_port}"
-echo "OLLAMA_VOLUME_NAME=${ollama_volume_name}"
-echo "OPENCLAW_VOLUME_NAME=${openclaw_volume_name}"
-echo "HOME_VOLUME_NAME=${home_volume_name}"
+echo "HOST_WORKSPACE_DIR=${host_workspace_dir}"
 if [[ -n "${telegram_bot_token}" ]]; then
   echo "TELEGRAM_BOT_TOKEN=configured"
   echo "TELEGRAM_ALLOW_FROM=${telegram_allow_from}"
