@@ -25,6 +25,14 @@ services:
       OPENCLAW_CONFIG_DIR: /data/openclaw/config
       OPENCLAW_WORKSPACE_DIR: /data/openclaw/workspace
     volumes:
-      - ${OLLAMA_VOLUME_NAME:-kclawbox-default-ollama}:/data/ollama
-      - ${OPENCLAW_VOLUME_NAME:-kclawbox-default-openclaw}:/data/openclaw
-      - ${HOME_VOLUME_NAME:-kclawbox-default-home}:/data/home
+      - ollama:/data/ollama
+      - openclaw:/data/openclaw
+      - home:/data/home
+
+volumes:
+  ollama:
+    name: ${OLLAMA_VOLUME_NAME:-kclawbox-default-ollama}
+  openclaw:
+    name: ${OPENCLAW_VOLUME_NAME:-kclawbox-default-openclaw}
+  home:
+    name: ${HOME_VOLUME_NAME:-kclawbox-default-home}
