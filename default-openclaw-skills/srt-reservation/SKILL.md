@@ -37,26 +37,28 @@ In runtime the absolute path is typically `/data/openclaw/.openclaw/workspace/sk
 ```
 If `id`/`pw` are omitted, the script falls back to env vars `SRT_ID` / `SRT_PW`.
 
-`search` - list trains. `dep` and `arr` are station names in English (see references/stations.md).
+`search` - list trains. `dep` and `arr` are Korean station names (the SRTrain library only accepts Korean; the wrapper also accepts a small English alias set listed in `references/stations.md`). `time` is `HHMM` and acts as a lower bound (the API returns trains at or after that minute).
 ```json
-{"action":"search","dep":"PyeongtaekJije","arr":"Suseo","date":"20260425","time":"0758","available_only":true}
+{"action":"search","dep":"평택지제","arr":"수서","date":"20260428","time":"0758","available_only":true}
 ```
-Returns `{ok, trains:[{no, dep, dep_time, arr, arr_time, duration, seat_type, seat_fare, seat_name, ...}]}`.
+Returns `{ok, trains:[{train_number, train_name, dep_date, dep_time, dep_station_name, arr_time, arr_station_name, general_seat_state, special_seat_state, general_seat_available, special_seat_available, reserve_standby_available}, ...]}`.
 
-`reserve` - book a specific train. Requires `resno` and `pnrno` from a `search` result.
+`reserve` - book a specific train. Identify the train via `train_number` (and the same `dep`/`arr`/`date` you used for search; the wrapper re-runs the search internally to obtain a fresh train object).
 ```json
-{"action":"reserve","resno":"<from_search>","pnrno":"<from_search>","seat_type":"STND","passengers":[{"type":"adult","count":1}]}
+{"action":"reserve","dep":"평택지제","arr":"수서","date":"20260428","train_number":"301","seat_type":"GENERAL_FIRST","passengers":[{"type":"adult","count":1}]}
 ```
-`seat_type` is one of `STND`, `SPFC`, `STND_ALL`, `STND_PARTIAL`, `SPFC_ALL`, `SPFC_PARTIAL`.
+`seat_type` is one of `GENERAL_FIRST` (default - take a general seat, fall back to special), `GENERAL_ONLY`, `SPECIAL_FIRST`, `SPECIAL_ONLY`. The aliases `GENERAL`, `SPECIAL`, `STND`, `SPFC` are also accepted.
+
+Returns `{ok, reservation:{reservation_number, train_name, dep_date, dep_time, dep_station_name, arr_time, arr_station_name, total_cost, seat_count, paid, payment_date, payment_time}}`. The `reservation_number` is what you pass to `cancel`.
 
 `reservations` - list current reservations.
 ```json
 {"action":"reservations","paid_only":false}
 ```
 
-`cancel` - cancel a reservation.
+`cancel` - cancel a reservation by `reservation_number`.
 ```json
-{"action":"cancel","resno":"<reservation_resno>"}
+{"action":"cancel","reservation_number":12345678}
 ```
 
 ### Error Shape

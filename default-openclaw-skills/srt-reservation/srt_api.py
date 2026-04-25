@@ -5,15 +5,120 @@ JSON-in / JSON-out 방식. stdin에서 JSON 받고 stdout으로 JSON 출력.
 Depends on the PyPI package SRTrain (installed in the kclawbox image).
 
 Usage:
-  echo '{"action":"search","dep":"PyeongtaekJije","arr":"Suseo","date":"20260425"}' | python3 srt_api.py
+  echo '{"action":"search","dep":"평택지제","arr":"수서","date":"20260428"}' | python3 srt_api.py
   echo '{"action":"login","id":"xxx","pw":"xxx"}' | python3 srt_api.py
-  echo '{"action":"reserve","resno":"12345","pnrno":"67890"}' | python3 srt_api.py
+  echo '{"action":"reserve","dep":"평택지제","arr":"수서","date":"20260428","train_number":"301"}' | python3 srt_api.py
 """
 import json
-import sys
 import os
+import sys
+from datetime import datetime
 
 from SRT import SRT, Adult, Child, SeatType
+
+# English-to-Korean station alias map. SRTrain only accepts the Korean
+# names from SRT.constants.STATION_CODE; this lets the agent pass either
+# form. Match the names exposed in references/stations.md.
+STATION_ALIAS = {
+    "suseo": "수서",
+    "dongtan": "동탄",
+    "pyeongtaekjije": "평택지제",
+    "cheonanasan": "천안아산",
+    "osong": "오송",
+    "daejeon": "대전",
+    "gimcheongumi": "김천(구미)",
+    "dongdaegu": "동대구",
+    "gyeongju": "경주",
+    "singyeongju": "신경주",
+    "ulsan": "울산(통도사)",
+    "ulsantongdosa": "울산(통도사)",
+    "busan": "부산",
+    "gongju": "공주",
+    "iksan": "익산",
+    "jeongeup": "정읍",
+    "gwangjusongjeong": "광주송정",
+    "naju": "나주",
+    "mokpo": "목포",
+    "pohang": "포항",
+    "yeosuexpo": "여수EXPO",
+    "yeocheon": "여천",
+    "suncheon": "순천",
+    "namwon": "남원",
+    "gokseong": "곡성",
+    "guryegu": "구례구",
+    "jeonju": "전주",
+    "jinju": "진주",
+    "miryang": "밀양",
+    "masan": "마산",
+    "changwon": "창원",
+    "changwonjungang": "창원중앙",
+    "jinyeong": "진영",
+    "seodaegu": "서대구",
+}
+
+SEAT_TYPE_MAP = {
+    "GENERAL_FIRST": SeatType.GENERAL_FIRST,
+    "GENERAL_ONLY": SeatType.GENERAL_ONLY,
+    "SPECIAL_FIRST": SeatType.SPECIAL_FIRST,
+    "SPECIAL_ONLY": SeatType.SPECIAL_ONLY,
+    # Friendly aliases:
+    "GENERAL": SeatType.GENERAL_FIRST,
+    "SPECIAL": SeatType.SPECIAL_FIRST,
+    "STND": SeatType.GENERAL_FIRST,
+    "SPFC": SeatType.SPECIAL_FIRST,
+}
+
+
+def normalize_station(name):
+    if not name:
+        return name
+    key = name.replace(" ", "").replace("-", "").replace("_", "").lower()
+    return STATION_ALIAS.get(key, name)
+
+
+def normalize_date(date):
+    if not date:
+        return datetime.now().strftime("%Y%m%d")
+    return str(date).replace("-", "")[:8]
+
+
+def serialize_train(t):
+    return {
+        "train_code": t.train_code,
+        "train_name": t.train_name,
+        "train_number": t.train_number,
+        "dep_date": t.dep_date,
+        "dep_time": t.dep_time,
+        "dep_station_name": t.dep_station_name,
+        "arr_date": getattr(t, "arr_date", None),
+        "arr_time": t.arr_time,
+        "arr_station_name": t.arr_station_name,
+        "general_seat_state": t.general_seat_state,
+        "special_seat_state": t.special_seat_state,
+        "general_seat_available": t.general_seat_available(),
+        "special_seat_available": t.special_seat_available(),
+        "reserve_standby_available": t.reserve_standby_available(),
+    }
+
+
+def serialize_reservation(r):
+    return {
+        "reservation_number": r.reservation_number,
+        "train_code": r.train_code,
+        "train_name": r.train_name,
+        "train_number": r.train_number,
+        "dep_date": r.dep_date,
+        "dep_time": r.dep_time,
+        "dep_station_name": r.dep_station_name,
+        "arr_time": r.arr_time,
+        "arr_station_name": r.arr_station_name,
+        "total_cost": r.total_cost,
+        "seat_count": r.seat_count,
+        "paid": r.paid,
+        "payment_date": r.payment_date,
+        "payment_time": r.payment_time,
+    }
+
 
 # 글로벌 SRT 인스턴스
 _srt_instance = None
@@ -40,125 +145,85 @@ def handle_login(data):
 
 def handle_search(data):
     srt = get_srt()
-    dep = data.get("dep")
-    arr = data.get("arr")
-    date = data.get("date")  # yyyyMMdd
-    time = data.get("time")  # HH:MM or hhmm
+    dep = normalize_station(data.get("dep"))
+    arr = normalize_station(data.get("arr"))
+    date = normalize_date(data.get("date"))
+    time = data.get("time")  # "HHMM" or "HH:MM"
+    if time:
+        time = str(time).replace(":", "")[:6].ljust(6, "0")
     available_only = data.get("available_only", True)
 
     if not dep or not arr:
         return {"ok": False, "error": "dep와 arr를 입력해주세요"}
 
-    if date:
-        date = date.replace("-", "")[:8]
-    else:
-        from datetime import datetime
-        date = datetime.now().strftime("%Y%m%d")
-
     trains = srt.search_train(dep, arr, date=date, time=time, available_only=available_only)
+    return {"ok": True, "trains": [serialize_train(t) for t in trains]}
 
-    result = []
+
+def _parse_passengers(passengers_input):
+    psgr_list = []
+    if not passengers_input:
+        passengers_input = [{"type": "adult", "count": 1}]
+    for p in passengers_input:
+        ptype = p.get("type", "adult")
+        count = int(p.get("count", 1))
+        if ptype == "child":
+            psgr_list.extend(Child() for _ in range(count))
+        else:
+            psgr_list.extend(Adult() for _ in range(count))
+    return psgr_list
+
+
+def _find_train(srt, dep, arr, date, train_number, time=None):
+    trains = srt.search_train(dep, arr, date=date, time=time, available_only=False)
     for t in trains:
-        result.append({
-            "no": t.no,
-            "dep": t.dep,
-            "dep_time": t.dep_time,
-            "arr": t.arr,
-            "arr_time": t.arr_time,
-            "duration": t.duration,
-            "total_seat_open_time": t.total_seat_open_time,
-            "reservation_total_count": t.reservation_total_count,
-            "seat_type": t.seat_type,
-            "seat_fare": t.seat_fare,
-            "seat_name": t.seat_name,
-        })
-
-    return {"ok": True, "trains": result}
+        if str(t.train_number) == str(train_number):
+            return t
+    return None
 
 
 def handle_reserve(data):
     srt = get_srt()
-    resno = data.get("resno")
-    pnrno = data.get("pnrno")
-    seat_type = data.get("seat_type", "STND")
-    passengers = data.get("passengers", [{"type": "adult", "count": 1}])
+    dep = normalize_station(data.get("dep"))
+    arr = normalize_station(data.get("arr"))
+    date = normalize_date(data.get("date"))
+    train_number = data.get("train_number")
+    time = data.get("time")
+    if time:
+        time = str(time).replace(":", "")[:6].ljust(6, "0")
+    seat_type_key = str(data.get("seat_type", "GENERAL_FIRST")).upper()
+    seat_type = SEAT_TYPE_MAP.get(seat_type_key, SeatType.GENERAL_FIRST)
+    passengers = _parse_passengers(data.get("passengers"))
 
-    # 승객 파싱
-    psgr_list = []
-    for p in passengers:
-        ptype = p.get("type", "adult")
-        count = p.get("count", 1)
-        if ptype == "adult":
-            for _ in range(count):
-                psgr_list.append(Adult())
-        elif ptype == "child":
-            for _ in range(count):
-                psgr_list.append(Child())
-        else:
-            for _ in range(count):
-                psgr_list.append(Adult())
+    if not dep or not arr or not train_number:
+        return {"ok": False, "error": "dep, arr, train_number를 입력해주세요"}
 
-    # 좌석 타입 매핑
-    seat_map = {
-        "STND": SeatType.STND,
-        "SPFC": SeatType.SPFC,
-        "STND_ALL": SeatType.STND_ALL,
-        "STND_PARTIAL": SeatType.STND_PARTIAL,
-        "SPFC_ALL": SeatType.SPFC_ALL,
-        "SPFC_PARTIAL": SeatType.SPFC_PARTIAL,
-    }
-    seat = seat_map.get(seat_type.upper(), SeatType.STND)
+    train = _find_train(srt, dep, arr, date, train_number, time=time)
+    if train is None:
+        return {"ok": False, "error": f"해당 열차를 찾을 수 없습니다 (train_number={train_number}, {dep}->{arr}, {date})"}
 
-    reservation = srt.reserve(resno, pnrno, seat, psgr_list)
-
-    return {
-        "ok": True,
-        "reservation": {
-            "resno": reservation.resno,
-            "pnrno": reservation.pnrno,
-            "total_price": reservation.total_price,
-            "total_seat_count": reservation.total_seat_count,
-            "statio": reservation.station,
-            "depart_date": reservation.depart_date,
-            "depart_time": reservation.depart_time,
-            "arrive_date": reservation.arrive_date,
-            "arrive_time": reservation.arrive_time,
-            "status": reservation.status,
-        }
-    }
+    reservation = srt.reserve(train, passengers=passengers, special_seat=seat_type)
+    return {"ok": True, "reservation": serialize_reservation(reservation)}
 
 
 def handle_reservations(data):
     srt = get_srt()
-    paid_only = data.get("paid_only", False)
+    paid_only = bool(data.get("paid_only", False))
     reservations = srt.get_reservations(paid_only=paid_only)
-
-    result = []
-    for r in reservations:
-        result.append({
-            "resno": r.resno,
-            "pnrno": r.pnrno,
-            "total_price": r.total_price,
-            "total_seat_count": r.total_seat_count,
-            "depart_date": r.depart_date,
-            "depart_time": r.depart_time,
-            "arrive_date": r.arrive_date,
-            "arrive_time": r.arrive_time,
-            "station": r.station,
-            "status": r.status,
-            "paid": r.paid,
-        })
-
-    return {"ok": True, "reservations": result}
+    return {"ok": True, "reservations": [serialize_reservation(r) for r in reservations]}
 
 
 def handle_cancel(data):
     srt = get_srt()
-    reservation = data.get("reservation") or data.get("resno")
-    if not reservation:
-        return {"ok": False, "error": "reservation 또는 resno를 입력해주세요"}
-    result = srt.cancel(reservation)
-    return {"ok": True, "cancelled": result}
+    rid = data.get("reservation_number") or data.get("resno") or data.get("reservation")
+    if rid is None:
+        return {"ok": False, "error": "reservation_number를 입력해주세요"}
+    try:
+        rid_int = int(rid)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": f"reservation_number는 정수여야 합니다 (got {rid!r})"}
+    cancelled = srt.cancel(rid_int)
+    return {"ok": True, "cancelled": bool(cancelled)}
 
 
 # 액션 매핑
@@ -187,7 +252,11 @@ def main():
         print(json.dumps({"ok": False, "error": f"unknown action: {action}"}))
         return
 
-    result = ACTIONS[action](data)
+    try:
+        result = ACTIONS[action](data)
+    except Exception as e:  # surface SRT library errors as ok=false instead of stack trace
+        result = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
     print(json.dumps(result, ensure_ascii=False, default=str))
 
 
