@@ -13,9 +13,19 @@ Use this skill for SRT ticket workflows in Korea.
 
 1. Collect the trip requirements.
 2. Normalize the itinerary into a booking-ready summary.
-3. If live booking tools are available, search and compare trains.
+3. Search and compare trains live (see Live Booking Tool below).
 4. Ask for explicit confirmation before any purchase or final booking action.
-5. If live tools are not available, hand the user a precise booking brief and manual next steps.
+5. Only fall back to a manual brief if the live tool is genuinely unavailable.
+
+## Live Booking Tool
+
+This box always ships with `agent-browser`, a headless browser CLI. Use it to drive the official SRT booking site:
+
+- Site: https://etk.srail.kr/
+- Login: https://etk.srail.kr/cmc/01/selectLoginForm.do
+- Schedule search: the form on the site's home page
+
+If `agent-browser` is on PATH, treat it as a working live booking surface. Do not tell the user "no booking tool is available" just because this skill file does not bundle a Korean rail API. The agent-browser skill (`agent-browser-clawdbot`) has the command reference.
 
 ## Required Trip Inputs
 
@@ -42,6 +52,7 @@ Ask for these when relevant:
 - If the user gives incomplete requirements, ask only for the missing fields.
 - If the environment lacks browser or booking automation, switch to preparation mode instead of pretending to book.
 - Keep station names in Korean or English exactly as the user will need them on the booking page.
+- Do not invent rules about which stations the SRT does or does not serve. If a station is in `references/stations.md`, it is a confirmed SRT station. If unsure, verify on https://etk.srail.kr/ via the live tool before telling the user a station is unavailable.
 
 ## Search And Comparison Workflow
 

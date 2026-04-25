@@ -2,6 +2,8 @@
 
 Use these names consistently in summaries and booking briefs.
 
+Every station in this list is a confirmed SRT (수서고속철도) station. Do not tell the user that any of these stations is "not served by SRT". If you are unsure, verify on https://etk.srail.kr/ before correcting the user.
+
 Common SRT stations users may mention in English:
 
 - Suseo
