@@ -18,6 +18,12 @@ One-line install:
 bash <(curl -fsSL https://raw.githubusercontent.com/jkim8k/kclawbox/main/install.sh)
 ```
 
+The repository clones to `~/kclawbox`. To install elsewhere (for example on a larger partition), pass an absolute path:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/jkim8k/kclawbox/main/install.sh) /data/kclawbox
+```
+
 Minimal setup:
 
 ```bash
@@ -98,6 +104,7 @@ The default output is `../kclawbox-deploy`.
 - The first start will pull the selected model inside the container.
 - The first start also runs `ollama launch openclaw --model ... --yes`.
 - Each agent gets its own `./workspaces/<name>/` directory so the model, OpenClaw state, and Codex home stay inside the install directory (files written from the container are root-owned; use `--force` on re-onboarding to clean).
+- Plan for at least ~30 GB free on the partition that holds the install directory; the default `qwen3.6` model alone is ~23 GB.
 - Default model is `qwen3.6:latest`.
 - If Telegram is configured, `TELEGRAM_ALLOW_FROM` should contain one or more comma-separated Telegram user ids.
 - Internet access is required at image build time to download the Ollama runtime.
