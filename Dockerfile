@@ -11,7 +11,6 @@ ENV OPENCLAW_HOME=/data/openclaw
 ENV OPENCLAW_CONFIG_DIR=/data/openclaw/config
 ENV OPENCLAW_WORKSPACE_DIR=/data/openclaw/workspace
 ENV HOME=/data/home
-ENV KC_DEFAULT_SKILLS_DIR=/opt/kclawbox/default-skills
 ENV KC_DEFAULT_OPENCLAW_SKILLS_DIR=/opt/kclawbox/default-openclaw-skills
 ENV KC_DEFAULT_OPENCLAW_WORKSPACE_DIR=/opt/kclawbox/default-openclaw-workspace
 ENV PATH=/usr/local/node/bin:/usr/local/bin:/usr/bin:/bin
@@ -56,7 +55,6 @@ COPY vendor/host-root/lib/x86_64-linux-gnu/libwind.so.0* /lib/x86_64-linux-gnu/
 COPY vendor/host-root/lib/x86_64-linux-gnu/libheimbase.so.1* /lib/x86_64-linux-gnu/
 COPY vendor/host-root/lib/x86_64-linux-gnu/libhx509.so.5* /lib/x86_64-linux-gnu/
 COPY vendor/host-root/lib/x86_64-linux-gnu/libcrypto.so.1.1 /lib/x86_64-linux-gnu/
-COPY default-skills/ /opt/kclawbox/default-skills/
 COPY default-openclaw-skills/ /opt/kclawbox/default-openclaw-skills/
 COPY default-openclaw-workspace/ /opt/kclawbox/default-openclaw-workspace/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
