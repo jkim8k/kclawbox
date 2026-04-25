@@ -22,11 +22,12 @@ RUN mkdir -p /usr/local/node \
   && rm -f /tmp/node.tar.gz
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl zstd \
+  && apt-get install -y --no-install-recommends ca-certificates curl zstd python3 python3-pip \
   && rm -rf /var/lib/apt/lists/* \
   && curl -fL "${OLLAMA_DOWNLOAD_URL}" -o /tmp/ollama.tar.zst \
   && zstd -dc /tmp/ollama.tar.zst | tar -xf - -C /usr/local \
-  && rm -f /tmp/ollama.tar.zst
+  && rm -f /tmp/ollama.tar.zst \
+  && pip3 install --no-cache-dir SRTrain==2.6.7
 
 RUN mkdir -p /data/home /data/ollama/models /data/openclaw/config /data/openclaw/workspace \
   /usr/lib/git-core /lib/x86_64-linux-gnu
