@@ -15,7 +15,7 @@ fi
 service_state="$(docker inspect --format '{{.State.Status}}' "${container_name}" 2>/dev/null || true)"
 service_health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "${container_name}" 2>/dev/null || true)"
 openclaw_config="$(docker exec "${container_name}" bash -lc 'test -f /data/home/.openclaw/openclaw.json && echo present || true' 2>/dev/null || true)"
-srt_skill="$(docker exec "${container_name}" bash -lc 'test -f /data/home/.codex/skills/srt-reservation/SKILL.md && echo present || true' 2>/dev/null || true)"
+srt_skill="$(docker exec "${container_name}" bash -lc 'test -f /data/openclaw/.openclaw/workspace/skills/srt-reservation/SKILL.md && echo present || true' 2>/dev/null || true)"
 agent_browser_skill="$(docker exec "${container_name}" bash -lc 'test -f /data/openclaw/.openclaw/workspace/skills/agent-browser-clawdbot/SKILL.md && echo present || true' 2>/dev/null || true)"
 memory_qdrant_skill="$(docker exec "${container_name}" bash -lc 'test -f /data/openclaw/.openclaw/workspace/skills/memory-qdrant/SKILL.md && echo present || true' 2>/dev/null || true)"
 agent_browser_cli="$(docker exec "${container_name}" bash -lc 'command -v agent-browser >/dev/null 2>&1 && echo present || true' 2>/dev/null || true)"

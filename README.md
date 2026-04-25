@@ -88,6 +88,33 @@ The Docker build downloads the Ollama runtime during image build. The model itse
 - [dev/check-kclawbox.sh](./dev/check-kclawbox.sh): debugging-only health check
 - [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md): development notes and non-user-facing tooling
 
+## Backing Up And Restoring An Agent
+
+Each agent's state lives under `./workspaces/<name>/`. Files are written from inside the container as root, so a plain `cp` or `tar` from your shell will hit permission errors. Use a short-lived helper container instead.
+
+Back up:
+
+```bash
+ts=$(date +%Y%m%d-%H%M)
+docker run --rm \
+  -v "$(pwd):/src:ro" \
+  -v "$HOME/kclawbox-backups:/dst" \
+  alpine:3 sh -c "mkdir -p /dst && cd /src && tar cf /dst/<name>-${ts}.tar workspaces/<name> .env"
+```
+
+Restore (stops the agent, replaces its workspace, restarts):
+
+```bash
+docker compose stop
+docker run --rm \
+  -v "$(pwd):/dst" \
+  -v "$HOME/kclawbox-backups:/src:ro" \
+  alpine:3 sh -c "rm -rf /dst/workspaces/<name> && tar xf /src/<name>-<timestamp>.tar -C /dst"
+docker compose up -d
+```
+
+The backup tarball includes the 23 GB Ollama model. If you only need to preserve OpenClaw state and Codex home, exclude `workspaces/<name>/ollama` from the tar to drop most of the size.
+
 ## Redistribution
 
 Create a clean deployment copy without your local `.env`, Telegram tokens, OpenClaw state, or Ollama credentials:
