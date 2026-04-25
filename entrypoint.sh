@@ -10,8 +10,6 @@ WORKSPACE_NAME="${KCLAWBOX_WORKSPACE_NAME:-}"
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_ALLOW_FROM="${TELEGRAM_ALLOW_FROM:-}"
 OPENCLAW_BIN="/usr/local/node/bin/openclaw"
-CODEX_SKILLS_DIR="${HOME}/.codex/skills"
-DEFAULT_SKILLS_DIR="${KC_DEFAULT_SKILLS_DIR:-/opt/kclawbox/default-skills}"
 OPENCLAW_RUNTIME_DIR="${OPENCLAW_HOME}/.openclaw"
 OPENCLAW_JSON="${OPENCLAW_RUNTIME_DIR}/openclaw.json"
 OPENCLAW_RUNTIME_WORKSPACE_DIR="${OPENCLAW_RUNTIME_DIR}/workspace"
@@ -22,19 +20,7 @@ DEFAULT_OPENCLAW_WORKSPACE_DIR="${KC_DEFAULT_OPENCLAW_WORKSPACE_DIR:-/opt/kclawb
 KCLAWBOX_WORKSPACE_MARKER="${OPENCLAW_RUNTIME_WORKSPACE_DIR}/.kclawbox-defaults-installed"
 KCLAWBOX_AGENT_MARKER="${OPENCLAW_RUNTIME_WORKSPACE_DIR}/.kclawbox-agent-name-set"
 
-mkdir -p "${HOME}" "${OLLAMA_MODELS}" "${OPENCLAW_CONFIG_DIR}" "${OPENCLAW_WORKSPACE_DIR}" "${CODEX_SKILLS_DIR}"
-
-if [[ -d "${DEFAULT_SKILLS_DIR}" ]]; then
-  echo "[kclawbox] installing bundled default skills"
-  for skill_dir in "${DEFAULT_SKILLS_DIR}"/*; do
-    [[ -d "${skill_dir}" ]] || continue
-    skill_name="$(basename "${skill_dir}")"
-    if [[ ! -e "${CODEX_SKILLS_DIR}/${skill_name}" ]]; then
-      cp -a "${skill_dir}" "${CODEX_SKILLS_DIR}/${skill_name}"
-      echo "[kclawbox] installed default skill ${skill_name}"
-    fi
-  done
-fi
+mkdir -p "${HOME}" "${OLLAMA_MODELS}" "${OPENCLAW_CONFIG_DIR}" "${OPENCLAW_WORKSPACE_DIR}"
 
 mkdir -p "${OPENCLAW_RUNTIME_SKILLS_DIR}" "${OPENCLAW_RUNTIME_CLAWHUB_DIR}"
 
@@ -176,6 +162,10 @@ if [[ -n "${TELEGRAM_BOT_TOKEN}" ]]; then
     "${OPENCLAW_BIN}" config set channels.telegram.dmPolicy allowlist
     "${OPENCLAW_BIN}" config set channels.telegram.allowFrom "${allow_from_json}" --strict-json
   fi
+fi
+
+if "${OPENCLAW_BIN}" channels list --json 2>/dev/null | grep -q '"telegram"'; then
+  rm -f "${OPENCLAW_RUNTIME_WORKSPACE_DIR}/BOOTSTRAP.md"
 fi
 
 echo "[kclawbox] starting openclaw gateway"

@@ -29,3 +29,8 @@ allow_from_json="$(
 "${OPENCLAW_BIN}" config set channels.telegram.dmPolicy allowlist
 "${OPENCLAW_BIN}" config set channels.telegram.allowFrom "${allow_from_json}" --strict-json
 "${OPENCLAW_BIN}" channels list --json
+
+if "${OPENCLAW_BIN}" channels list --json 2>/dev/null | grep -q '"telegram"'; then
+  workspace_dir="${OPENCLAW_HOME:-/data/openclaw}/.openclaw/workspace"
+  rm -f "${workspace_dir}/BOOTSTRAP.md"
+fi
