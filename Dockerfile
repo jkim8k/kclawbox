@@ -5,7 +5,9 @@ ARG NODE_VERSION=v22.19.0
 ARG OLLAMA_DOWNLOAD_URL=https://ollama.com/download/ollama-linux-amd64.tar.zst
 
 ENV OLLAMA_HOST=127.0.0.1:11434
-ENV OLLAMA_SERVER_HOST=0.0.0.0:11434
+ENV OLLAMA_SERVER_HOST=127.0.0.1:11435
+ENV KC_LOOPGUARD_LISTEN_PORT=11434
+ENV KC_LOOPGUARD_UPSTREAM_PORT=11435
 ENV OLLAMA_MODELS=/data/ollama/models
 ENV OPENCLAW_HOME=/data/openclaw
 ENV OPENCLAW_CONFIG_DIR=/data/openclaw/config
@@ -57,6 +59,7 @@ COPY vendor/host-root/lib/x86_64-linux-gnu/libhx509.so.5* /lib/x86_64-linux-gnu/
 COPY vendor/host-root/lib/x86_64-linux-gnu/libcrypto.so.1.1 /lib/x86_64-linux-gnu/
 COPY default-openclaw-skills/ /opt/kclawbox/default-openclaw-skills/
 COPY default-openclaw-workspace/ /opt/kclawbox/default-openclaw-workspace/
+COPY runtime/ /opt/kclawbox/runtime/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN printf '%s\n' \
   '[url "https://github.com/"]' \

@@ -3,7 +3,10 @@ set -euo pipefail
 
 MODEL="${OLLAMA_MODEL:-qwen3.6:latest}"
 OLLAMA_CLIENT_HOST="${OLLAMA_HOST:-127.0.0.1:11434}"
-OLLAMA_SERVER_HOST="${OLLAMA_SERVER_HOST:-0.0.0.0:11434}"
+OLLAMA_SERVER_HOST="${OLLAMA_SERVER_HOST:-127.0.0.1:11435}"
+KC_LOOPGUARD_LISTEN_PORT="${KC_LOOPGUARD_LISTEN_PORT:-11434}"
+KC_LOOPGUARD_UPSTREAM_PORT="${KC_LOOPGUARD_UPSTREAM_PORT:-11435}"
+KC_LOOPGUARD_SCRIPT="${KC_LOOPGUARD_SCRIPT:-/opt/kclawbox/runtime/ollama-loop-guard.mjs}"
 OPENCLAW_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-openclaw-local-token}"
 AGENT_ENGLISH_NAME="${KCLAWBOX_AGENT_NAME:-}"
 WORKSPACE_NAME="${KCLAWBOX_WORKSPACE_NAME:-}"
@@ -65,11 +68,16 @@ fi
 git config --global url."https://github.com/".insteadOf ssh://git@github.com/
 git config --global url."https://github.com/".insteadOf git@github.com:
 
-echo "[kclawbox] starting ollama serve"
+echo "[kclawbox] starting ollama serve (bind ${OLLAMA_SERVER_HOST})"
 OLLAMA_HOST="${OLLAMA_SERVER_HOST}" ollama serve > /tmp/ollama-serve.log 2>&1 &
 OLLAMA_PID=$!
 
+LOOPGUARD_PID=""
 cleanup() {
+  if [[ -n "${LOOPGUARD_PID}" ]] && kill -0 "${LOOPGUARD_PID}" >/dev/null 2>&1; then
+    kill "${LOOPGUARD_PID}" >/dev/null 2>&1 || true
+    wait "${LOOPGUARD_PID}" >/dev/null 2>&1 || true
+  fi
   if kill -0 "${OLLAMA_PID}" >/dev/null 2>&1; then
     kill "${OLLAMA_PID}" >/dev/null 2>&1 || true
     wait "${OLLAMA_PID}" >/dev/null 2>&1 || true
@@ -77,20 +85,47 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Wait for ollama serve to come up on its bind port (do not go through the
+# loop-guard proxy yet — it is not running).
 for _ in $(seq 1 60); do
-  if OLLAMA_HOST="${OLLAMA_CLIENT_HOST}" ollama list >/dev/null 2>&1; then
+  if OLLAMA_HOST="${OLLAMA_SERVER_HOST}" ollama list >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 
-if ! OLLAMA_HOST="${OLLAMA_CLIENT_HOST}" ollama list >/dev/null 2>&1; then
+if ! OLLAMA_HOST="${OLLAMA_SERVER_HOST}" ollama list >/dev/null 2>&1; then
   echo "[kclawbox] ollama failed to become ready"
   cat /tmp/ollama-serve.log || true
   exit 1
 fi
 
 echo "[kclawbox] ollama is ready"
+
+if [[ -f "${KC_LOOPGUARD_SCRIPT}" ]]; then
+  echo "[kclawbox] starting ollama loop guard (proxy ${KC_LOOPGUARD_LISTEN_PORT} -> ${KC_LOOPGUARD_UPSTREAM_PORT})"
+  OLLAMA_LOOPGUARD_LISTEN_HOST=0.0.0.0 \
+  OLLAMA_LOOPGUARD_LISTEN_PORT="${KC_LOOPGUARD_LISTEN_PORT}" \
+  OLLAMA_LOOPGUARD_UPSTREAM_HOST=127.0.0.1 \
+  OLLAMA_LOOPGUARD_UPSTREAM_PORT="${KC_LOOPGUARD_UPSTREAM_PORT}" \
+  /usr/local/node/bin/node "${KC_LOOPGUARD_SCRIPT}" > /tmp/ollama-loop-guard.log 2>&1 &
+  LOOPGUARD_PID=$!
+
+  for _ in $(seq 1 30); do
+    if curl -fsS "http://127.0.0.1:${KC_LOOPGUARD_LISTEN_PORT}/api/tags" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+  if ! curl -fsS "http://127.0.0.1:${KC_LOOPGUARD_LISTEN_PORT}/api/tags" >/dev/null 2>&1; then
+    echo "[kclawbox] loop guard failed to become ready"
+    cat /tmp/ollama-loop-guard.log || true
+    exit 1
+  fi
+  echo "[kclawbox] loop guard is ready"
+else
+  echo "[kclawbox] loop guard script not present at ${KC_LOOPGUARD_SCRIPT}; clients will hit ollama directly"
+fi
 echo "[kclawbox] pulling model ${MODEL}"
 OLLAMA_HOST="${OLLAMA_CLIENT_HOST}" ollama pull "${MODEL}"
 
