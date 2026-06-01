@@ -162,11 +162,21 @@ echo "[kclawbox] pinning memory_search to local ollama embeddings (${MEMORY_EMBE
 # upgrades; when unset, web_search auto-detects the ollama provider, which needs
 # `ollama signin` (ollama.com auth) and fails with "authentication failed".
 # DuckDuckGo needs no key/account; web_fetch uses the built-in local HTTP fetch.
-WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER:-duckduckgo}"
-echo "[kclawbox] pinning web_search to key-free provider (${WEB_SEARCH_PROVIDER}) + enabling local web_fetch"
 "${OPENCLAW_BIN}" config set tools.web.search.enabled true
-"${OPENCLAW_BIN}" config set tools.web.search.provider "${WEB_SEARCH_PROVIDER}"
 "${OPENCLAW_BIN}" config set tools.web.fetch.enabled true
+if [[ -n "${BRAVE_API_KEY:-}" ]]; then
+  WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER:-brave}"
+  echo "[kclawbox] web_search provider=${WEB_SEARCH_PROVIDER} (Brave key present) + local web_fetch"
+  # Brave is an external plugin (@openclaw/brave-plugin), not a stock provider.
+  # Ensure it is present+enabled; install is a no-op if it already exists in the volume.
+  "${OPENCLAW_BIN}" plugins install @openclaw/brave-plugin >/dev/null 2>&1 || echo "[kclawbox] note: brave-plugin already present or install skipped"
+  "${OPENCLAW_BIN}" config set plugins.entries.brave.enabled true
+  "${OPENCLAW_BIN}" config set plugins.entries.brave.config.webSearch.apiKey "${BRAVE_API_KEY}"
+else
+  WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER:-duckduckgo}"
+  echo "[kclawbox] web_search provider=${WEB_SEARCH_PROVIDER} (no Brave key; key-free) + local web_fetch"
+fi
+"${OPENCLAW_BIN}" config set tools.web.search.provider "${WEB_SEARCH_PROVIDER}"
 
 if [[ -n "${TELEGRAM_BOT_TOKEN}" ]]; then
   echo "[kclawbox] configuring telegram channel"
