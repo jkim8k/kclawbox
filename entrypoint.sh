@@ -49,9 +49,6 @@ ensure_npm_deps() {
   fi
 }
 
-ensure_npm_deps "${OPENCLAW_RUNTIME_SKILLS_DIR}/memory-qdrant"
-ensure_npm_deps "${OPENCLAW_RUNTIME_SKILLS_DIR}/elite-longterm-memory-local"
-
 if ! command -v agent-browser >/dev/null 2>&1; then
   echo "[kclawbox] installing agent-browser CLI"
   npm install -g agent-browser
@@ -93,6 +90,12 @@ fi
 echo "[kclawbox] ollama is ready"
 echo "[kclawbox] pulling model ${MODEL}"
 OLLAMA_HOST="${OLLAMA_CLIENT_HOST}" ollama pull "${MODEL}"
+
+# Local embedding model for built-in memory_search + the L3 memory indexer, so
+# neither needs an external embedding API key.
+MEMORY_EMBED_MODEL="${KCLAWBOX_MEMORY_EMBED_MODEL:-nomic-embed-text:latest}"
+echo "[kclawbox] pulling embedding model ${MEMORY_EMBED_MODEL}"
+OLLAMA_HOST="${OLLAMA_CLIENT_HOST}" ollama pull "${MEMORY_EMBED_MODEL}" || echo "[kclawbox] WARN: embed model pull failed; memory_search may degrade to FTS-only"
 
 if [ ! -x "${OPENCLAW_BIN}" ] || [ ! -f "${OPENCLAW_JSON}" ]; then
   echo "[kclawbox] bootstrapping openclaw via ollama launch"
@@ -146,6 +149,25 @@ echo "[kclawbox] configuring openclaw gateway"
 "${OPENCLAW_BIN}" config set gateway.auth.mode token
 "${OPENCLAW_BIN}" config set gateway.auth.token "${OPENCLAW_TOKEN}"
 
+# Pin built-in memory_search to LOCAL Ollama embeddings so it never requires an
+# external embedding API key (OpenAI/Gemini/Voyage/Mistral). When memorySearch
+# is unset, recent OpenClaw defaults to the openai provider, which the onboard
+# wizard can reintroduce on upgrades — re-assert local on every boot.
+MEMORY_EMBED_MODEL="${KCLAWBOX_MEMORY_EMBED_MODEL:-nomic-embed-text:latest}"
+echo "[kclawbox] pinning memory_search to local ollama embeddings (${MEMORY_EMBED_MODEL})"
+"${OPENCLAW_BIN}" config set agents.defaults.memorySearch.provider ollama
+"${OPENCLAW_BIN}" config set agents.defaults.memorySearch.model "${MEMORY_EMBED_MODEL}"
+
+# Pin web tools to KEY-FREE providers. The onboard wizard wipes tools.web on
+# upgrades; when unset, web_search auto-detects the ollama provider, which needs
+# `ollama signin` (ollama.com auth) and fails with "authentication failed".
+# DuckDuckGo needs no key/account; web_fetch uses the built-in local HTTP fetch.
+WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER:-duckduckgo}"
+echo "[kclawbox] pinning web_search to key-free provider (${WEB_SEARCH_PROVIDER}) + enabling local web_fetch"
+"${OPENCLAW_BIN}" config set tools.web.search.enabled true
+"${OPENCLAW_BIN}" config set tools.web.search.provider "${WEB_SEARCH_PROVIDER}"
+"${OPENCLAW_BIN}" config set tools.web.fetch.enabled true
+
 if [[ -n "${TELEGRAM_BOT_TOKEN}" ]]; then
   echo "[kclawbox] configuring telegram channel"
   "${OPENCLAW_BIN}" channels add --channel telegram --token "${TELEGRAM_BOT_TOKEN}" --name "Telegram default"
@@ -166,6 +188,16 @@ fi
 
 if "${OPENCLAW_BIN}" channels list --json 2>/dev/null | grep -q '"telegram"'; then
   rm -f "${OPENCLAW_RUNTIME_WORKSPACE_DIR}/BOOTSTRAP.md"
+fi
+
+# Deterministic raw-conversation capture loop (fox workspace). Runs the capture
+# script on an interval WITHOUT spinning an OpenClaw agent/LLM turn — replaces the
+# old `raw-data-auto-save` cron job that ran an agentTurn just to invoke a shell
+# script (and spammed the chat). Launched only when the workspace provides it.
+RAW_CAPTURE_LOOP="${HOME}/memory/scripts/raw-capture-loop.sh"
+if [[ -f "${RAW_CAPTURE_LOOP}" ]]; then
+  echo "[kclawbox] starting raw-capture loop"
+  MEMORY_ROOT="${HOME}/memory" bash "${RAW_CAPTURE_LOOP}" > /tmp/raw-capture-loop.out 2>&1 &
 fi
 
 echo "[kclawbox] starting openclaw gateway"
