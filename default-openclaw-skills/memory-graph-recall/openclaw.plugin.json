@@ -1,0 +1,11 @@
+{
+  "id": "memory-graph-recall",
+  "name": "Memory Graph Recall",
+  "version": "1.0.0",
+  "description": "Auto-injects relevant knowledge-graph nodes (Layer 2) into context before each turn. Pure SQLite search (trigram FTS + LIKE), no LLM/embeddings, Korean-safe.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

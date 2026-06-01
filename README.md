@@ -73,8 +73,8 @@ If you want service-style control after first setup:
 
 If a Telegram bot token and allowlist are provided, the container configures the Telegram channel automatically on boot.
 
-The deployment image seeds OpenClaw workspace skills into `/data/openclaw/.openclaw/workspace/skills`, including `memory-qdrant`, `elite-longterm-memory-local`, `memory-tiering`, and `agent-browser-clawdbot`.
-On first boot, `kclawbox` installs npm dependencies for the memory skills and installs the `agent-browser` CLI globally.
+The deployment image seeds OpenClaw workspace skills into `/data/openclaw/.openclaw/workspace/skills`, including `memory-graph-recall`, `agent-browser-clawdbot`, and `srt-reservation`. The agent's long-term memory is a 3-layer system (identity files / `~/memory` knowledge graph / raw archive); `memory-graph-recall` auto-injects relevant graph nodes into context before each turn (pure SQLite, no embeddings, Korean-safe).
+On first boot, `kclawbox` installs the `agent-browser` CLI globally.
 The Docker build downloads the Ollama runtime during image build. The model itself is still downloaded on first boot via `ollama pull`.
 
 ## Files

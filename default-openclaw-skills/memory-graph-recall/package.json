@@ -1,0 +1,13 @@
+{
+  "name": "memory-graph-recall",
+  "version": "1.0.0",
+  "description": "Deterministic auto-recall from the local knowledge graph (Layer 2) via SQLite. No LLM, no embeddings, Korean-safe.",
+  "type": "module",
+  "main": "index.js",
+  "openclaw": {
+    "extensions": ["./index.js"]
+  },
+  "keywords": ["openclaw", "plugin", "memory", "knowledge-graph", "recall"],
+  "license": "MIT",
+  "engines": { "node": ">=22.0.0" }
+}
