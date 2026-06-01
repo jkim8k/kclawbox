@@ -18,6 +18,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_ALLOW_FROM: ${TELEGRAM_ALLOW_FROM:-}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      SEARXNG_BASE_URL: ${SEARXNG_BASE_URL:-http://searxng:8080}
       OLLAMA_HOST: 127.0.0.1:11434
       OLLAMA_SERVER_HOST: 0.0.0.0:11434
       OLLAMA_MODELS: /data/ollama/models
@@ -29,3 +30,14 @@ services:
       - ${HOST_WORKSPACE_DIR:-./workspaces/default}/ollama:/data/ollama
       - ${HOST_WORKSPACE_DIR:-./workspaces/default}/openclaw:/data/openclaw
       - ${HOST_WORKSPACE_DIR:-./workspaces/default}/home:/data/home
+
+  # Self-hosted, key-free metasearch backing the fox's web_search (aggregates
+  # Google/Bing/Brave/DuckDuckGo/etc — engine-level resilience, no API key).
+  searxng:
+    image: searxng/searxng:latest
+    container_name: ${OPENCLAW_CONTAINER_NAME:-kclawbox}-searxng
+    restart: unless-stopped
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/

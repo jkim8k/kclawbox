@@ -164,18 +164,29 @@ echo "[kclawbox] pinning memory_search to local ollama embeddings (${MEMORY_EMBE
 # DuckDuckGo needs no key/account; web_fetch uses the built-in local HTTP fetch.
 "${OPENCLAW_BIN}" config set tools.web.search.enabled true
 "${OPENCLAW_BIN}" config set tools.web.fetch.enabled true
+# Configure every provider we have credentials/endpoints for, then pick the active one.
+# SearXNG (self-hosted metasearch) is a stock provider — key-free and aggregates many
+# engines, so a single query already has engine-level resilience.
+if [[ -n "${SEARXNG_BASE_URL:-}" ]]; then
+  "${OPENCLAW_BIN}" config set plugins.entries.searxng.config.webSearch.baseUrl "${SEARXNG_BASE_URL}"
+fi
+# Brave is an external plugin; keep it installed+configured as an option even when not active.
 if [[ -n "${BRAVE_API_KEY:-}" ]]; then
-  WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER:-brave}"
-  echo "[kclawbox] web_search provider=${WEB_SEARCH_PROVIDER} (Brave key present) + local web_fetch"
-  # Brave is an external plugin (@openclaw/brave-plugin), not a stock provider.
-  # Ensure it is present+enabled; install is a no-op if it already exists in the volume.
   "${OPENCLAW_BIN}" plugins install @openclaw/brave-plugin >/dev/null 2>&1 || echo "[kclawbox] note: brave-plugin already present or install skipped"
   "${OPENCLAW_BIN}" config set plugins.entries.brave.enabled true
   "${OPENCLAW_BIN}" config set plugins.entries.brave.config.webSearch.apiKey "${BRAVE_API_KEY}"
-else
-  WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER:-duckduckgo}"
-  echo "[kclawbox] web_search provider=${WEB_SEARCH_PROVIDER} (no Brave key; key-free) + local web_fetch"
 fi
+# Active provider precedence: explicit override > SearXNG (key-free) > Brave > DuckDuckGo.
+if [[ -n "${KCLAWBOX_WEB_SEARCH_PROVIDER:-}" ]]; then
+  WEB_SEARCH_PROVIDER="${KCLAWBOX_WEB_SEARCH_PROVIDER}"
+elif [[ -n "${SEARXNG_BASE_URL:-}" ]]; then
+  WEB_SEARCH_PROVIDER="searxng"
+elif [[ -n "${BRAVE_API_KEY:-}" ]]; then
+  WEB_SEARCH_PROVIDER="brave"
+else
+  WEB_SEARCH_PROVIDER="duckduckgo"
+fi
+echo "[kclawbox] web_search provider=${WEB_SEARCH_PROVIDER} + local web_fetch"
 "${OPENCLAW_BIN}" config set tools.web.search.provider "${WEB_SEARCH_PROVIDER}"
 
 if [[ -n "${TELEGRAM_BOT_TOKEN}" ]]; then

@@ -1,0 +1,15 @@
+# SearXNG settings for kclawbox-fox web_search (self-hosted, key-free).
+# JSON format is REQUIRED for OpenClaw's API client and is disabled by default.
+use_default_settings: true
+server:
+  secret_key: "9d981588e62c7377794409b30597190283ce99dadda048617e3b2faf170c0b5f"
+  bind_address: "0.0.0.0"
+  port: 8080
+  limiter: false          # internal API client; don't rate-limit/botblock
+  public_instance: false
+search:
+  formats:
+    - html
+    - json
+general:
+  debug: false
