@@ -203,6 +203,7 @@ echo "[kclawbox] pinning memory_search to local ollama embeddings (${MEMORY_EMBE
 # SearXNG (self-hosted metasearch) is a stock provider — key-free and aggregates many
 # engines, so a single query already has engine-level resilience.
 if [[ -n "${SEARXNG_BASE_URL:-}" ]]; then
+  "${OPENCLAW_BIN}" config set plugins.entries.searxng.enabled true
   "${OPENCLAW_BIN}" config set plugins.entries.searxng.config.webSearch.baseUrl "${SEARXNG_BASE_URL}"
 fi
 # Brave is an external plugin; keep it installed+configured as an option even when not active.
