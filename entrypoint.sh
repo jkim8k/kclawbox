@@ -257,5 +257,21 @@ if [[ -f "${RAW_CAPTURE_LOOP}" ]]; then
   MEMORY_ROOT="${HOME}/memory" bash "${RAW_CAPTURE_LOOP}" > /tmp/raw-capture-loop.out 2>&1 &
 fi
 
+# Operational verifier (HARNESS.md §0 — the harness's "verifier" leg). Reads
+# environment state only (files/dbs/cron-state/HTTP probes), never the model, and
+# emits ground-truth health. Seed it into the fox's script toolbox and expose a
+# `fox-status` command so health comes from data, not the model's self-narration.
+VERIFY_SRC="/opt/kclawbox/runtime/verify.mjs"
+if [[ -f "${VERIFY_SRC}" ]]; then
+  mkdir -p "${HOME}/memory/scripts"
+  cp -f "${VERIFY_SRC}" "${HOME}/memory/scripts/verify.mjs" 2>/dev/null || true
+  cat > /usr/local/bin/fox-status <<EOF
+#!/usr/bin/env bash
+exec /usr/local/node/bin/node "${VERIFY_SRC}" "\$@"
+EOF
+  chmod 755 /usr/local/bin/fox-status
+  echo "[kclawbox] installed operational verifier (run: fox-status)"
+fi
+
 echo "[kclawbox] starting openclaw gateway"
 exec "${OPENCLAW_BIN}" gateway run --allow-unconfigured --bind lan --auth token --token "${OPENCLAW_TOKEN}" --port 18789
