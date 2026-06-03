@@ -273,5 +273,15 @@ EOF
   echo "[kclawbox] installed operational verifier (run: fox-status)"
 fi
 
+# Periodic deterministic health watcher → Telegram alert on FAIL. No model: the
+# alert goes straight to the Telegram Bot API, so it works even if the gateway is
+# down (a gateway outage is itself a FAIL condition). System health is reported
+# by data here, never by the model narrating itself.
+VERIFY_LOOP="/opt/kclawbox/runtime/verify-loop.sh"
+if [[ -f "${VERIFY_LOOP}" ]]; then
+  echo "[kclawbox] starting verify-loop (deterministic health alerts)"
+  MEMORY_ROOT="${HOME}/memory" bash "${VERIFY_LOOP}" > /tmp/verify-loop.out 2>&1 &
+fi
+
 echo "[kclawbox] starting openclaw gateway"
 exec "${OPENCLAW_BIN}" gateway run --allow-unconfigured --bind lan --auth token --token "${OPENCLAW_TOKEN}" --port 18789
