@@ -12,6 +12,10 @@ services:
     gpus: all
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.6:latest}
+      # Pin the fox to a single GPU and cap context so the model stays fully on-GPU
+      # (gemma4-31b-qat fits 24GB only at ~32K context; higher spills to CPU).
+      CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-}
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-openclaw-local-token}
       KCLAWBOX_AGENT_NAME: ${KCLAWBOX_AGENT_NAME:-}
       KCLAWBOX_WORKSPACE_NAME: ${KCLAWBOX_WORKSPACE_NAME:-}

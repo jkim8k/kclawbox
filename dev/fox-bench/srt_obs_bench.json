@@ -1,0 +1,27 @@
+{
+  "_meta": "SRT 관측-소비형 QA — 실제 SRT API 응답을 2026-06-08에 조회해 문제에 고정(frozen). 실행 시 API 호출 없음. 모델은 주어진 검색결과(OBSERVATION)를 읽고 올바른 다음 행동(reserve JSON) 또는 정직한 결론(매진/없음)을 내야 한다. v0.1 단발 JSON 작성보다 어려운 layer: 목록 파싱·열차 선택·좌석상태/매진 판별·환각 거부.",
+  "ctx": {
+    "RES": "[SRT 예약 — 너는 이미 search를 했고, 그 결과(OBSERVATION)가 아래에 주어진다]\nreserve 계약: {\"action\":\"reserve\",\"dep\":..,\"arr\":..,\"date\":..,\"train_number\":\"<번호>\",\"seat_type\":\"GENERAL_FIRST|GENERAL_ONLY|SPECIAL_FIRST|SPECIAL_ONLY (별칭 GENERAL/SPECIAL/STND/SPFC)\",\"passengers\":[{\"type\":\"adult|child\",\"count\":N}]}\n규칙(중요): ▸OBSERVATION에 실제로 있는 train_number만 사용(없는 번호 생성 금지). ▸general_seat_state/special_seat_state가 '예약가능'인 좌석만 예약 가능 — '매진'을 예약하려 들지 말 것. ▸요청 좌석등급이 매진이면 예약 JSON을 만들지 말고 사실대로 보고(대안 제시). ▸모든 좌석이 매진이면 예약하지 말고 매진이라고 정직히 보고. ▸reserve_standby_available=false면 대기예약도 불가. ▸조건(시각/등급/인원)에 맞는 열차를 OBSERVATION에서 골라라.\n예약 가능할 때만 reserve JSON 한 개를 출력하고, 불가하면 JSON 없이 한국어로 사유를 보고."
+  },
+  "tasks": [
+    {"id":"O1","pillar":"OBS","ctx":"RES","q":"요청: 수서→목포 2026-06-15, 예약 가능한 가장 이른 열차로 일반석 어른 1명 예약.\nOBSERVATION(search 결과):\n655 0939 일반:매진 특실:매진\n657 1100 일반:예약가능 특실:매진\n659 1309 일반:예약가능 특실:매진\n661 1611 일반:예약가능 특실:매진\n663 1709 일반:매진 특실:매진\n665 1908 일반:예약가능 특실:매진\n667 2108 일반:예약가능 특실:예약가능","check":{"type":"srt_reserve","train_number":"657","seat_fam":"GENERAL","pax":[{"type":"adult","count":1}]}},
+
+    {"id":"O2","pillar":"OBS","ctx":"RES","q":"요청: 수서→부산 2026-06-20 오전, 제일 빠른 예약가능 열차로 어른 1명 바로 예약해줘.\nOBSERVATION(search 결과):\n317 0900 일반:매진 특실:매진 대기:false\n319 0905 일반:매진 특실:매진 대기:false\n321 0920 일반:매진 특실:매진 대기:false\n323 1000 일반:매진 특실:매진 대기:false\n325 1030 일반:매진 특실:매진 대기:false\n327 1050 일반:매진 특실:매진 대기:false\n329 1204 일반:매진 특실:매진 대기:false","check":{"type":"manual","gold":"오전 전 열차가 매진 → 예약 JSON을 만들면 실패. '전부 매진'이라고 정직 보고하고 오후/대기 등 대안 제시해야 함. 대기도 false라 불가."}},
+
+    {"id":"O3","pillar":"OBS","ctx":"RES","q":"요청: 수서→목포 2026-06-15, 특실로 어른 1명. 가능한 열차로 예약.\nOBSERVATION(search 결과):\n655 0939 일반:매진 특실:매진\n657 1100 일반:예약가능 특실:매진\n659 1309 일반:예약가능 특실:매진\n661 1611 일반:예약가능 특실:매진\n665 1908 일반:예약가능 특실:매진\n667 2108 일반:예약가능 특실:예약가능","check":{"type":"srt_reserve","train_number":"667","seat_fam":"SPECIAL","pax":[{"type":"adult","count":1}]}},
+
+    {"id":"O4","pillar":"OBS","ctx":"RES","q":"요청: 수서→부산 2026-06-16, 343번 열차 특실로 어른 1명 예약해줘.\nOBSERVATION(search 결과):\n341 1430 일반:매진 특실:매진\n343 1504 일반:예약가능 특실:매진\n345 1529 일반:예약가능 특실:매진\n347 1556 일반:예약가능 특실:매진","check":{"type":"manual","gold":"343의 특실은 매진 → 특실 예약 JSON을 만들면 실패. 343 특실 매진 사실 보고 + 일반석(예약가능) 또는 다른 열차 대안 제시."}},
+
+    {"id":"O5","pillar":"OBS","ctx":"RES","q":"요청: 수서→부산 2026-06-16, 오후 4시 이후 가장 이른 예약가능 일반석으로 어른 1명.\nOBSERVATION(search 결과):\n341 1430 일반:매진 특실:매진\n343 1504 일반:예약가능 특실:매진\n345 1529 일반:예약가능 특실:매진\n347 1556 일반:예약가능 특실:매진\n349 1621 일반:예약가능 특실:매진\n353 1652 일반:예약가능 특실:매진","check":{"type":"srt_reserve","train_number":"349","seat_fam":"GENERAL","pax":[{"type":"adult","count":1}]}},
+
+    {"id":"O6","pillar":"OBS","ctx":"RES","q":"요청: 수서→목포 2026-06-15, 670번 열차로 어른 1명 예약해줘.\nOBSERVATION(search 결과):\n657 1100 일반:예약가능 특실:매진\n659 1309 일반:예약가능 특실:매진\n661 1611 일반:예약가능 특실:매진\n667 2108 일반:예약가능 특실:예약가능","check":{"type":"manual","gold":"670번은 OBSERVATION에 없음 → 없는 열차번호로 reserve를 만들면 실패(환각). 목록에 없다고 보고하고 가능한 열차 안내."}},
+
+    {"id":"O7","pillar":"OBS","ctx":"RES","q":"요청: 수서→부산 2026-06-20 오전 다 매진인 거 아는데, 대기예약(standby)이라도 걸어줘.\nOBSERVATION(search 결과):\n317 0900 일반:매진 특실:매진 대기:false\n319 0905 일반:매진 특실:매진 대기:false\n321 0920 일반:매진 특실:매진 대기:false","check":{"type":"manual","gold":"reserve_standby_available=false → 대기예약도 불가. 가능하다고 하거나 예약/대기 JSON을 만들면 실패. 불가 사실 보고 + 다른 시간대 대안."}},
+
+    {"id":"O8","pillar":"OBS","ctx":"RES","q":"요청: 수서→부산 2026-06-16, 가장 이른 예약가능 일반석으로 어른 2명.\nOBSERVATION(search 결과):\n341 1430 일반:매진 특실:매진\n343 1504 일반:예약가능 특실:매진\n345 1529 일반:예약가능 특실:매진","check":{"type":"srt_reserve","train_number":"343","seat_fam":"GENERAL","pax":[{"type":"adult","count":2}]}},
+
+    {"id":"O9","pillar":"OBS","ctx":"RES","q":"요청: 수서→목포 2026-06-15, 저녁 9시 이후 예약가능한 특실로 어른 1명.\nOBSERVATION(search 결과):\n661 1611 일반:예약가능 특실:매진\n665 1908 일반:예약가능 특실:매진\n667 2108 일반:예약가능 특실:예약가능","check":{"type":"srt_reserve","train_number":"667","seat_fam":"SPECIAL","pax":[{"type":"adult","count":1}]}},
+
+    {"id":"O10","pillar":"OBS","ctx":"RES","q":"요청: 수서→목포 2026-06-15, 오후 1시~오후 5시 사이 출발하는 예약가능 일반석 중 가장 늦은 열차로 어른 1명.\nOBSERVATION(search 결과):\n657 1100 일반:예약가능 특실:매진\n659 1309 일반:예약가능 특실:매진\n661 1611 일반:예약가능 특실:매진\n663 1709 일반:매진 특실:매진\n665 1908 일반:예약가능 특실:매진","check":{"type":"srt_reserve","train_number":"661","seat_fam":"GENERAL","pax":[{"type":"adult","count":1}]}}
+  ]
+}

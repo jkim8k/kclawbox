@@ -2,7 +2,10 @@ FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG NODE_VERSION=v22.19.0
-ARG OLLAMA_DOWNLOAD_URL=https://ollama.com/download/ollama-linux-amd64.tar.zst
+# Pinned to a versioned GitHub release: the generic ollama.com/download redirect
+# is intermittently 504, and an unpinned "latest" hurts reproducibility. Bump
+# deliberately. (>=0.30 required for gemma4 manifests.)
+ARG OLLAMA_DOWNLOAD_URL=https://github.com/ollama/ollama/releases/download/v0.30.6/ollama-linux-amd64.tar.zst
 
 ENV OLLAMA_HOST=127.0.0.1:11434
 ENV OLLAMA_SERVER_HOST=127.0.0.1:11435

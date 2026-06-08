@@ -1,0 +1,122 @@
+{
+ "T01": {
+  "q": "수서에서 부산까지 2026년 6월 20일 오전 9시 이후 열차 찾아줘. JSON 액션만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"부산\",\"date\":\"20260620\",\"time\":\"0900\",\"available_only\":true}",
+  "sec": 17.8
+ },
+ "T02": {
+  "q": "내일 수서에서 목포 가는 거 검색해줘. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"목포\",\"date\":\"20260609\",\"time\":\"0000\",\"available_only\":true}",
+  "sec": 12.1
+ },
+ "T03": {
+  "q": "Search SRT from Suseo to Busan on 2026-06-20 after 09:00. JSON action only.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"부산\",\"date\":\"20260620\",\"time\":\"0900\",\"available_only\":true}",
+  "sec": 5.3
+ },
+ "T04": {
+  "q": "동대구에서 수서로 6월 21일 저녁 6시 이후 열차. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"동대구\",\"arr\":\"수서\",\"date\":\"20260621\",\"time\":\"1800\",\"available_only\":true}",
+  "sec": 14.0
+ },
+ "T05": {
+  "q": "수서→동대구 6월 20일 오후 2시 이후, 매진된 것까지 전부 다 보여줘. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"동대구\",\"date\":\"20260620\",\"time\":\"1400\",\"available_only\":false}",
+  "sec": 11.0
+ },
+ "T06": {
+  "q": "이번 주 토요일 수서에서 부산 오전. 검색 JSON 만들어줘.",
+  "pillar": "SRT",
+  "ans": "```json\n{\n  \"action\": \"search\",\n  \"dep\": \"수서\",\n  \"arr\": \"부산진\",\n  \"date\": \"20260613\",\n  \"time\": \"0600\",\n  \"available_only\": true\n}\n```",
+  "sec": 17.5
+ },
+ "T07": {
+  "q": "다음 달 1일 수서에서 동대구 가는 열차 검색. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"동대구\",\"date\":\"20260701\"}",
+  "sec": 12.7
+ },
+ "T08": {
+  "q": "수서에서 울산 가는 거, 다음 주 금요일 오전 10시 이후. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"울산\",\"date\":\"20260619\",\"time\":\"1000\",\"available_only\":true}",
+  "sec": 7.8
+ },
+ "T09": {
+  "q": "수서에서 김천구미역, 다음 주 월요일 오후 3시쯤. 검색 JSON.",
+  "pillar": "SRT",
+  "ans": "```json\n{\n  \"action\": \"search\",\n  \"dep\": \"수서\",\n  \"arr\": \"김천구미\",\n  \"date\": \"20260615\",\n  \"time\": \"1500\",\n  \"available_only\": true\n}\n```",
+  "sec": 10.2
+ },
+ "T10": {
+  "q": "6/15 수서->부산 아침 7시 이후. JSON 액션만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"부산\",\"date\":\"20260615\",\"time\":\"0700\",\"available_only\":true}",
+  "sec": 17.0
+ },
+ "T11": {
+  "q": "수서에서 부산, 2026-06-20, 09:00 이후로 조회. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"부산\",\"date\":\"20260620\",\"time\":\"0900\",\"available_only\":true}",
+  "sec": 9.4
+ },
+ "T12": {
+  "q": "수서→목포 6/15 오전 거 중에 예약 가능한 것만. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"search\",\"dep\":\"수서\",\"arr\":\"목포\",\"date\":\"20260615\",\"time\":\"0900\",\"available_only\":true}",
+  "sec": 10.5
+ },
+ "T13": {
+  "q": "수서→부산 6월 20일, 317번 열차로 일반석 어른 1명 예약 진행. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"reserve\",\"dep\":\"수서\",\"arr\":\"부산\",\"date\":\"20260620\",\"train_number\":\"317\",\"seat_type\":\"GENERAL\",\"passengers\":[{\"type\":\"adult\",\"count\":1}]}",
+  "sec": 14.5
+ },
+ "T14": {
+  "q": "동대구→수서 6월 21일 356번 열차, 특실로 어른 2명 예약. JSON만.",
+  "pillar": "SRT",
+  "ans": "```json\n{\n  \"action\": \"reserve\",\n  \"dep\": \"동대구\",\n  \"arr\": \"수서\",\n  \"date\": \"20260621\",\n  \"train_number\": \"356\",\n  \"seat_type\": \"SPECIAL_FIRST\",\n  \"passengers\": [\n    {\n      \"type\": \"adult\",\n      \"count\": 2\n    }\n  ]\n}\n```",
+  "sec": 19.6
+ },
+ "T15": {
+  "q": "수서→목포 6월 15일 657번 열차, 어른 1명이랑 아이 1명 예약해줘. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"reserve\",\"dep\":\"수서\",\"arr\":\"목포\",\"date\":\"20260615\",\"train_number\":\"657\",\"seat_type\":\"GENERAL\",\"passengers\":[{\"type\":\"adult\",\"count\":1},{\"type\":\"child\",\"count\":1}]}",
+  "sec": 18.4
+ },
+ "T16": {
+  "q": "수서→부산 6/20 319번, 좌석 종류는 STND로 어른 1명. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"reserve\",\"dep\":\"수서\",\"arr\":\"부산\",\"date\":\"20260620\",\"train_number\":\"319\",\"seat_type\":\"STND\",\"passengers\":[{\"type\":\"adult\",\"count\":1}]}",
+  "sec": 17.1
+ },
+ "T17": {
+  "q": "예약번호 98765432 취소해줘. JSON 액션만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"cancel\",\"reservation_number\":98765432}",
+  "sec": 4.0
+ },
+ "T18": {
+  "q": "내 SRT 예약 내역 전부 보여줘. 아직 결제 안 한 것도 포함해서. JSON만.",
+  "pillar": "SRT",
+  "ans": "{\"action\":\"reservations\",\"paid_only\":false,\"reservations\":[]}",
+  "sec": 20.7
+ },
+ "T19": {
+  "q": "서울에서 부산 가는 SRT 6월 20일 오전. 검색 JSON 만들어줘.",
+  "pillar": "SRT",
+  "ans": "```json\n{\n  \"action\": \"search\",\n  \"dep\": \"수서\",\n  \"arr\": \"부산\",\n  \"date\": \"20260620\",\n  \"time\": \"0800\",\n  \"available_only\": true\n}\n```",
+  "sec": 20.9
+ },
+ "T20": {
+  "q": "수서→부산 6/20 오전 9시 열차 자리 있어? 있으면 바로 예약 확정해줘.",
+  "pillar": "SRT",
+  "ans": "```json\n{\n  \"action\": \"search\",\n  \"dep\": \"수서\",\n  \"arr\": \"부산\",\n  \"date\": \"20260620\",\n  \"time\": \"0900\",\n  \"available_only\": true\n}\n```\n📌 **참고**: 검색 결과 반환 후, 예약 진행을 위해 `train_number(열차번호)` 및 승객 정보(`type: adult/child`, `count: 인원`)가 필요합니다. 정보가 충족되면 `reserve` 액션을 즉시 실행하겠습니다.",
+  "sec": 22.1
+ }
+}
